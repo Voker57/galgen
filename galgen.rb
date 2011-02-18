@@ -2,10 +2,12 @@ require 'rubygems'
 require 'fileutils'
 require 'tilt'
 require 'RedCloth'
+require 'builder'
 
 default_config = {
 	:thumb_size => "800x600",
-	:minithumb_size => "200x150"
+	:minithumb_size => "200x150",
+	:atom_items => 10
 }
 
 class GalGen
@@ -27,7 +29,7 @@ class GalGen
 	end
 	
 	def generate_gallery(out_directory, gallery_path = [])
-		directory = ([@rootdir] + gallery_path).join("/")
+		directory = ([@rootdir] + gallery_path).join("/galleries/")
 		
 		static_dir = [@rootdir, "static"].join("/")
 		
@@ -57,6 +59,7 @@ class GalGen
 		gallery_vars = { :gallery_title => gallery_title, :gallery_url => './', :gallery_description => gallery_description, :root => (gallery_path.length == 0 ? "." : ([".."] * gallery_path.length).join("/")) }
 		g_tmpl = Tilt::ERBTemplate.new([@rootdir, "gallery.erb"].join("/"))
 		previews = ""
+		child_images = []
 		if File.exists? [directory, "images"].join("/")
 			images = (Dir.entries([directory, "images"].join("/")) - [".",".."]).sort
 			clean_images = images.map {|i| i.gsub(/^\d+_/,"").gsub(/\.\w+$/,"")}
@@ -73,7 +76,7 @@ class GalGen
 					description = RedCloth.new(desc_text.gsub(/^.*?\n\n/,"")).to_html
 				end
 				tmpl = Tilt::ERBTemplate.new([@rootdir, "image.erb"].join("/"))
-				image_vars = { :image_title => title, :description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/")}
+				image_vars = { :image_title => title, :description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/"), :image_name => clean_image_name}
 				
 				idx = clean_images.index(base_image_name)
 				
@@ -115,6 +118,7 @@ class GalGen
 				
 				p_tmpl = Tilt::ERBTemplate.new([@rootdir, "image_preview.erb"].join("/"))
 				previews << p_tmpl.render(nil, gallery_vars.merge(image_vars))
+				child_images << gallery_vars.merge(image_vars)
 			end
 		end
 		FileUtils.mkdir_p(([out_directory] + gallery_path).join("/"))
@@ -122,8 +126,31 @@ class GalGen
 			f.write(g_tmpl.render(nil, gallery_vars.merge(:image_previews => previews, :gallery_previews => gallery_previews)))	
 			puts (gallery_path + ["index.html"]).join("/")
 		end
+		
+		
+		xo = File.open(([out_directory] + gallery_path + ["index.xml"]).join("/"), "w")
+		
+		xml = Builder::XmlMarkup.new(:target => xo)
+		xml.instruct!
+		xml.feed("xmlns"=>"http://www.w3.org/2005/Atom") do |feed|
+			feed.title("Updates to '#{gallery_title}'")
+			feed.link("href" => ([config[:http_root]] + gallery_path).join("/"))
+			child_images.last(10).each do |c_img|
+				feed.entry do |entry|
+					entry.title(c_img[:image_title])
+					uri = ([config[:http_root]] + gallery_path + [c_img[:image_page_url]]).join("/")
+					img_uri = ([config[:http_root]] + ["images", "thumb"] + gallery_path + [c_img[:image_name]]).join("/")
+					full_uri = ([config[:http_root]] + ["images", "full"] + gallery_path + [c_img[:image_name]]).join("/")
+					entry.id(uri)
+					entry.link("href" => uri)
+					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a>")
+				end
+			end
+		end
+		
 		gallery_vars
 	end
+	
 end
 
 galgen = GalGen.new(default_config, ARGV[0])
