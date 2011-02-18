@@ -28,6 +28,14 @@ class GalGen
 	
 	def generate_gallery(out_directory, gallery_path = [])
 		directory = ([@rootdir] + gallery_path).join("/")
+		
+		static_dir = [@rootdir, "static"].join("/")
+		
+		if File.exists? static_dir and not check_timestamp(static_dir, out_directory + "/static")
+			FileUtils.cp_r static_dir, out_directory
+			puts "static/*"
+		end
+		
 		gallery_previews = ""
 		if File.exists?(directory + "/" + "galleries")
 			(Dir.entries(directory + "/" + "galleries") - [".",".."]).each do |gallery|
@@ -46,7 +54,7 @@ class GalGen
 			gallery_title = desc_text.scan(/^(.*?)(\n\n|$)/)[0][0]
 			gallery_description = RedCloth.new(desc_text.gsub(/^.*?(\n\n|$)/,"")).to_html
 		end
-		gallery_vars = { :gallery_title => gallery_title, :gallery_url => './', :gallery_description => gallery_description }
+		gallery_vars = { :gallery_title => gallery_title, :gallery_url => './', :gallery_description => gallery_description, :root => (gallery_path.length == 0 ? "." : ([".."] * gallery_path.length).join("/")) }
 		g_tmpl = Tilt::ERBTemplate.new([@rootdir, "gallery.erb"].join("/"))
 		previews = ""
 		if File.exists? [directory, "images"].join("/")
