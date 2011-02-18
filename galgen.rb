@@ -31,6 +31,8 @@ class GalGen
 	def generate_gallery(out_directory, gallery_path = [])
 		directory = ([@rootdir] + gallery_path).join("/galleries/")
 		
+		FileUtils.mkdir_p(([out_directory] + gallery_path).join("/")) if gallery_path.length > 0
+		
 		static_dir = [@rootdir, "static"].join("/")
 		
 		if File.exists? static_dir and not check_timestamp(static_dir, out_directory + "/static")
