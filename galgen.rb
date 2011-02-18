@@ -16,6 +16,16 @@ class GalGen
 	
 	attr_reader :config
 	
+	def check_timestamp(source, target)
+		if source.is_a? Array
+			source.map { |s| check_timestamp(s, target)} - [true] == []
+		elsif !File.exists?(target)
+			false
+		else
+			File.mtime(source) <= File.mtime(target)
+		end
+	end
+	
 	def generate_gallery(out_directory, gallery_path = [])
 		directory = ([@rootdir] + gallery_path).join("/")
 		gallery_previews = ""
@@ -40,7 +50,9 @@ class GalGen
 		g_tmpl = Tilt::ERBTemplate.new([@rootdir, "gallery.erb"].join("/"))
 		previews = ""
 		if File.exists? [directory, "images"].join("/")
-			(Dir.entries([directory, "images"].join("/")) - [".",".."]).each do |image_name|
+			images = (Dir.entries([directory, "images"].join("/")) - [".",".."]).sort
+			clean_images = images.map {|i| i.gsub(/^\d+_/,"").gsub(/\.\w+$/,"")}
+			images.each do |image_name|
 				full_image_name = [directory, "images", image_name].join("/")
 				description_file = [directory, "descriptions", image_name + ".textile"].join("/")
 				clean_image_name = image_name.gsub(/^\d+_/,"")
@@ -53,19 +65,40 @@ class GalGen
 					description = RedCloth.new(desc_text.gsub(/^.*?\n\n/,"")).to_html
 				end
 				tmpl = Tilt::ERBTemplate.new([@rootdir, "image.erb"].join("/"))
-				image_vars = { :image_title => title, :description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [image_name]).join("/")}
+				image_vars = { :image_title => title, :description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/")}
+				
+				idx = clean_images.index(base_image_name)
+				
+				if idx != 0
+					image_vars[:prev_image_url] = clean_images[idx-1] + ".html"
+				end
+				
+				if idx != clean_images.size - 1
+					image_vars[:next_image_url] = clean_images[idx+1] + ".html"
+				end
 				
 				FileUtils.mkdir_p(([out_directory, "images", "full"] + gallery_path).join("/"))
 				FileUtils.mkdir_p(([out_directory, "images", "thumb"] + gallery_path).join("/"))
 				FileUtils.mkdir_p(([out_directory, "images", "minithumb"] + gallery_path).join("/"))
 				
-				FileUtils.cp(full_image_name, ([out_directory, "images", "full"] + gallery_path).join("/"))
-				puts (["images", "full"] + gallery_path + [image_name]).join("/")
+				full_path = ([out_directory, "images", "full"] + gallery_path + [clean_image_name]).join("/")
+				unless check_timestamp(full_image_name, full_path)
+					FileUtils.cp(full_image_name, full_path)
+					puts full_path
+				end
 				
-				`convert #{full_image_name} -resize #{config[:thumb_size]} #{([out_directory, "images", "thumb"] + gallery_path + [image_name]).join("/")}`
-				puts (["images", "thumb"] + gallery_path + [image_name]).join("/")
-				`convert #{full_image_name} -resize #{config[:minithumb_size]} #{([out_directory, "images", "minithumb"] + gallery_path + [image_name]).join("/")}`
-				puts (["images", "minithumb"] + gallery_path + [image_name]).join("/")
+				
+				thumb_path = ([out_directory, "images", "thumb"] + gallery_path + [clean_image_name]).join("/")
+				unless check_timestamp(full_image_name, thumb_path)
+					`convert #{full_image_name} -resize #{config[:thumb_size]} #{thumb_path}`
+					puts thumb_path
+				end
+				
+				minithumb_path = ([out_directory, "images", "minithumb"] + gallery_path + [clean_image_name]).join("/")
+				unless check_timestamp(full_image_name, minithumb_path)
+					`convert #{full_image_name} -resize #{config[:minithumb_size]} #{minithumb_path}`
+					puts minithumb_path
+				end
 				
 				File.open(([out_directory] + gallery_path + [base_image_name + ".html"]).join("/"),"w") do |f|
 					f.write(tmpl.render(nil, gallery_vars.merge(image_vars)))
