@@ -50,7 +50,6 @@ Using templates you can totally (well, somewhat) change the look and layout of y
 
 *image.erb*: Defines the look of individual image pages.
 *image_preview.erb*: Defines the look of image preview on gallery page.
-*image_feed.erb*: Defines the look of image entry in Atom feed.
 
 Variables available for all templates:
 
