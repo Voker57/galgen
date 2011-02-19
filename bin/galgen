@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'rubygems'
 require 'fileutils'
 require 'tilt'
@@ -327,7 +329,11 @@ class GalGen
 	
 end
 
-
+if ARGV.size < 2
+	puts "Usage: galgen <input_directory> <output_directory>"
+	puts "Manual: http://bitcheese.net/wiki/code/galgen/manual"
+	exit
+end
 
 galgen = GalGen.new(ARGV[0])
 
