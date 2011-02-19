@@ -132,7 +132,11 @@ class GalGen
  				EOF
  			end
  		end
-		
+		@image_tmpl = Tilt::ERBTemplate.new(@rootdir + "/image.erb")
+		@gallery_tmpl = Tilt::ERBTemplate.new(@rootdir + "/gallery.erb")
+		@image_p_tmpl = Tilt::ERBTemplate.new(@rootdir + "/image_preview.erb")
+		@gallery_p_tmpl = Tilt::ERBTemplate.new(@rootdir + "/gallery_preview.erb")
+		@image_feed_tmpl = Tilt::ERBTemplate.new(@rootdir + "/image_feed.erb")
 	end
 	
 	attr_reader :config
@@ -152,7 +156,6 @@ class GalGen
 		gallery_vars = generate_gallery(out_directory)
 		
 		xo = File.open(([out_directory] + gallery_vars[:gallery_path] + [config[:total_feed]]).join("/"), "w")
-		i_f_tmpl = Tilt::ERBTemplate.new([@rootdir, "image_feed.erb"].join("/"))
 		
 		xml = Builder::XmlMarkup.new(:target => xo)
 		xml.instruct!
@@ -168,7 +171,7 @@ class GalGen
 					full_uri = ([config[:http_root]] + ["images", "full"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
-					entry.content({"type" => "html"}, i_f_tmpl.render(nil, c_img))
+					entry.content({"type" => "html"}, @image_feed_tmpl.render(nil, c_img))
 				end
 			end
 		end
@@ -196,8 +199,7 @@ class GalGen
 			(Dir.entries(directory + "/" + "galleries") - [".",".."]).each do |gallery|
 				child = generate_gallery(out_directory, gallery_path + [gallery])
 				child[:gallery_url] = gallery + "/"
-				cg_tmpl = Tilt::ERBTemplate.new([@rootdir, "gallery_preview.erb"].join("/"))
-				gallery_previews << cg_tmpl.render(nil, child)
+				gallery_previews << @gallery_p_tmpl.render(nil, child)
 				children_children += child[:children]
 			end
 		end
@@ -217,7 +219,6 @@ class GalGen
 		end
 		gallery_vars = { :gallery_title => gallery_title, :gallery_url => './', :gallery_description => gallery_description, :root => (gallery_path.length == 0 ? "." : ([".."] * gallery_path.length).join("/")), :gallery_path => gallery_path }
 		gallery_vars[:children] = children_children
-		g_tmpl = Tilt::ERBTemplate.new([@rootdir, "gallery.erb"].join("/"))
 		previews = ""
 		child_images = []
 		if File.exists? [directory, "images"].join("/")
@@ -240,7 +241,6 @@ class GalGen
 						description = RedCloth.new(desc_text.gsub(/^.*?(\n\n)/,"")).to_html
 					end
 				end
-				tmpl = Tilt::ERBTemplate.new([@rootdir, "image.erb"].join("/"))
 				image_vars = { :image_title => title, :image_description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/"), :image_name => clean_image_name, :modified => File.mtime(full_image_name), :original_name => image_name}
 				
 				idx = clean_images.index(base_image_name)
@@ -277,18 +277,17 @@ class GalGen
 				end
 				
 				File.open(([out_directory] + gallery_path + [base_image_name + ".html"]).join("/"),"w") do |f|
-					f.write(tmpl.render(nil, gallery_vars.merge(image_vars)))
+					f.write(@image_tmpl.render(nil, gallery_vars.merge(image_vars)))
 					puts ([out_directory] + gallery_path + [base_image_name + ".html"]).join("/")
 				end
 				
-				p_tmpl = Tilt::ERBTemplate.new([@rootdir, "image_preview.erb"].join("/"))
-				previews << p_tmpl.render(nil, gallery_vars.merge(image_vars))
+				previews << @image_p_tmpl.render(nil, gallery_vars.merge(image_vars))
 				child_images << gallery_vars.merge(image_vars)
 			end
 		end
 		FileUtils.mkdir_p(([out_directory] + gallery_path).join("/"))
 		File.open(([out_directory] + gallery_path + ["index.html"]).join("/"), "w") do |f|
-			f.write(g_tmpl.render(nil, gallery_vars.merge(:image_previews => previews, :gallery_previews => gallery_previews)))	
+			f.write(@gallery_tmpl.render(nil, gallery_vars.merge(:image_previews => previews, :gallery_previews => gallery_previews)))	
 			puts ([out_directory] + gallery_path + ["index.html"]).join("/")
 		end
 		
@@ -296,8 +295,6 @@ class GalGen
 		
 		atom_feed = ([out_directory] + gallery_path + ["index.xml"]).join("/")
 		xo = File.open(atom_feed, "w")
-		
-		i_f_tmpl = Tilt::ERBTemplate.new([@rootdir, "image_feed.erb"].join("/"))
 		
 		xml = Builder::XmlMarkup.new(:target => xo)
 		xml.instruct!
@@ -314,7 +311,7 @@ class GalGen
 					full_uri = ([config[:http_root]] + ["images", "full"] + gallery_path + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
-					entry.content({"type" => "html"}, i_f_tmpl.render(nil, c_img))
+					entry.content({"type" => "html"}, @image_feed_tmpl.render(nil, c_img))
 				end
 			end
 		end
