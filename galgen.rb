@@ -4,8 +4,6 @@ require 'tilt'
 require 'RedCloth'
 require 'builder'
 
-
-
 class GalGen
 	def initialize(rootdir)
 		@rootdir = rootdir
@@ -16,7 +14,7 @@ class GalGen
 			:total_feed => "gindex.xml"
 		}
 		@config = if File.readable?(@rootdir + "/" + "galgen.yml")
-			YAML.load_file(@rootdir + "/" + "galgen.yml")
+			default_config.merge(YAML.load_file(@rootdir + "/" + "galgen.yml"))
 		else
 			puts "Using default config; create galgen.yml to override"
 			default_config
@@ -26,6 +24,103 @@ class GalGen
 				a[:image_name] <=> b[:image_name]
 			else
 				a[:modified] <=> b[:modified]
+			end
+		end
+		# Supply default versions of templates if they don't exist
+		if !File.readable?(@rootdir + "/image.erb")
+			puts "Creating image.erb"
+			File.open(@rootdir + "/image.erb", "w") do |f|
+				erb <<-EOF
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us"><head><title><%= image_title %></title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  </head>
+  <body>
+   	<a href="..">..</a> / <a href="<%= gallery_url %>"><%= gallery_title %></a> / <a href="<% image_page_url %>"><% image_title %></a>
+     
+    <h1> <%= image_title %> </h1>
+
+<div >
+<a href="<%= image_url %>">
+<img src="<%= image_thumb_url %>" />
+</a>
+<br />
+<%= description %>
+</div>
+
+<div>
+	<% if defined? prev_image_url %>
+		<a href="<%= prev_image_url %>">&lt;&lt;&lt;</a>
+	<% else %>
+		&lt;&lt;&lt;
+	<% end %>
+|
+	<% if defined? next_image_url %>
+		<a href="<%= next_image_url %>">&gt;&gt;&gt;</a>
+	<% else %>
+		&gt;&gt;&gt;
+	<% end %>
+</div>
+</body>
+</html>
+				EOF
+				f.write erb
+			end
+		end
+		if !File.readable?(@rootdir + "/gallery.erb")
+			puts "Creating gallery.erb"
+			File.open(@rootdir + "/gallery.erb", "w") do |f|
+				erb <<-EOF
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+  <head>
+    <title><% gallery_title %></title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  </head>
+  <body>
+  	<a href="<%= gallery_url %>"><%= gallery_title %></a>
+       
+    <h1> <a href="<%= gallery_url %>"><%= gallery_title %></a> </h1>
+
+<%= gallery_description %>
+
+<%= gallery_previews %>
+
+<%= image_previews %>
+  </body>
+</html>
+				EOF
+				f.write erb
+			end
+		end
+		if !File.readable?(@rootdir + "/image_preview.erb")
+			puts "Creating image_preview.erb"
+			File.open(@rootdir + "/image_preview.erb", "w") do |f|
+				erb <<-EOF
+<div>
+<a href="<%= image_page_url %>">
+<img src="<%= image_minithumb_url %>" />
+<br />
+<h3 style="display:inline">
+	<%= image_title %>
+</h3>
+</a>
+</a>
+</div>
+				EOF
+				f.write erb
+			end
+		end
+		if !File.readable?(@rootdir + "/gallery_preview.erb")
+			puts "Creating gallery_preview.erb"
+			File.open(@rootdir + "/gallery_preview", "w") do |f|
+				erb <<-EOF
+<%= gallery_description %>
+<h2>
+	<a href="<%= gallery_url %>"><%=gallery_title%></a>
+</h2>
+				EOF
+				f.write erb
 			end
 		end
 	end
