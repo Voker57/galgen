@@ -196,8 +196,13 @@ class GalGen
 		gallery_description = ""
 		if File.readable?(gallery_description_file)
 			desc_text = File.read(gallery_description_file)
-			gallery_title = desc_text.scan(/^(.*?)(\n\n|$)/)[0][0]
-			gallery_description = RedCloth.new(desc_text.gsub(/^.*?(\n\n|$)/,"")).to_html
+			g_title = desc_text.scan(/^(.*?)(\n\n|$)/)[0][0]
+			if g_title.length > 0
+				gallery_title = g_title
+			end
+			if desc_text =~ /\n\n/
+				gallery_description = RedCloth.new(desc_text.gsub(/^.*?(\n\n)/,"")).to_html
+			end
 		end
 		gallery_vars = { :gallery_title => gallery_title, :gallery_url => './', :gallery_description => gallery_description, :root => (gallery_path.length == 0 ? "." : ([".."] * gallery_path.length).join("/")), :gallery_path => gallery_path }
 		gallery_vars[:children] = children_children
@@ -215,9 +220,14 @@ class GalGen
 				description = ""
 				title = base_image_name
 				if File.readable?(description_file)
-					desc_text = File.read(description_file)
-					title = desc_text.scan(/^(.*?)(\n\n|$)/)[0][0]
-					description = RedCloth.new(desc_text.gsub(/^.*?(\n\n|$)/,"")).to_html
+					desc_text = File.read(gallery_description_file)
+					i_title = desc_text.scan(/^(.*?)(\n\n|$)/)[0][0]
+					if i_title.length > 0
+						title = i_title
+					end
+					if desc_text =~ /\n\n/
+						description = RedCloth.new(desc_text.gsub(/^.*?(\n\n)/,"")).to_html
+					end
 				end
 				tmpl = Tilt::ERBTemplate.new([@rootdir, "image.erb"].join("/"))
 				image_vars = { :image_title => title, :description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/"), :image_name => clean_image_name, :modified => File.mtime(full_image_name), :original_name => image_name}
