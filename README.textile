@@ -39,6 +39,7 @@ Config is in "YAML":http://www.yaml.org/ format and placed in *galgen.yml* file 
 | :minithumb_size | 200x150 | Minithumbnail size (for gallery preview) |
 | :atom_items | 10 | Number of last items in Atom feed |
 | :total_feed | gindex.xml | Name of feed with updates to all galleries |
+| :http_base | | HTTP base that will be prepended to URIs in Atom feed |
 
 h2(#templates). Templates
 
@@ -71,3 +72,12 @@ Variables available only for image templates:
 *original_name*: Unstripped name of image, with number, if any, and extension.
 *next_image_url*: Link to next image page, if any, *nil* otherwise.
 *prev_image_url*: Link to previous image page, if any, *nil* otherwise.
+
+h2. Running
+
+Now, run @galgen@ with first parameter being your current directory, second being output directory (will be created if not exists):
+
+bc. % galgen my_gallery my_html
+<bunch of output here>
+
+That's it, your gallery is created in my_html! Just copy it over to HTTP server and enjoy.
