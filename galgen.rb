@@ -45,7 +45,7 @@ class GalGen
 <img src="<%= image_thumb_url %>" />
 </a>
 <br />
-<%= description %>
+<%= image_description %>
 </div>
 
 <div>
@@ -115,10 +115,11 @@ class GalGen
 			puts "Creating gallery_preview.erb"
 			File.open(@rootdir + "/gallery_preview", "w") do |f|
 				erb <<-EOF
-<%= gallery_description %>
+
 <h2>
 	<a href="<%= gallery_url %>"><%=gallery_title%></a>
 </h2>
+<%= gallery_description %>
 				EOF
 				f.write erb
 			end
@@ -220,7 +221,7 @@ class GalGen
 				description = ""
 				title = base_image_name
 				if File.readable?(description_file)
-					desc_text = File.read(gallery_description_file)
+					desc_text = File.read(description_file)
 					i_title = desc_text.scan(/^(.*?)(\n\n|$)/)[0][0]
 					if i_title.length > 0
 						title = i_title
@@ -230,7 +231,7 @@ class GalGen
 					end
 				end
 				tmpl = Tilt::ERBTemplate.new([@rootdir, "image.erb"].join("/"))
-				image_vars = { :image_title => title, :description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/"), :image_name => clean_image_name, :modified => File.mtime(full_image_name), :original_name => image_name}
+				image_vars = { :image_title => title, :image_description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/"), :image_name => clean_image_name, :modified => File.mtime(full_image_name), :original_name => image_name}
 				
 				idx = clean_images.index(base_image_name)
 				
