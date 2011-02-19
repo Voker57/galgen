@@ -122,23 +122,10 @@ class GalGen
 				EOF
 			end
 		end
- 		if !File.readable?(@rootdir + "/image_feed.erb")
- 			puts "Creating image_feed.erb"
- 			File.open(@rootdir + "/image_feed.erb", "w") do |f|
- 				f.write <<-EOF
- <a href="<%= image_url %>">
- <img src="<%= image_thumb_url %>" />
- </a>
- <br />
- <%= image_description %>
- 				EOF
- 			end
- 		end
 		@image_tmpl = Tilt::ERBTemplate.new(@rootdir + "/image.erb")
 		@gallery_tmpl = Tilt::ERBTemplate.new(@rootdir + "/gallery.erb")
 		@image_p_tmpl = Tilt::ERBTemplate.new(@rootdir + "/image_preview.erb")
 		@gallery_p_tmpl = Tilt::ERBTemplate.new(@rootdir + "/gallery_preview.erb")
-		@image_feed_tmpl = Tilt::ERBTemplate.new(@rootdir + "/image_feed.erb")
 	end
 	
 	attr_reader :config
@@ -174,7 +161,7 @@ class GalGen
 					full_uri = ([config[:http_root]] + ["images", "full"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
-					entry.content({"type" => "html"}, @image_feed_tmpl.render(nil, c_img))
+					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
 				end
 			end
 		end
@@ -314,7 +301,7 @@ class GalGen
 					full_uri = ([config[:http_root]] + ["images", "full"] + gallery_path + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
-					entry.content({"type" => "html"}, @image_feed_tmpl.render(nil, c_img))
+					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
 				end
 			end
 		end
