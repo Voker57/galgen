@@ -2,4 +2,4 @@ p=. !http://dump.bitcheese.net/files/galgen.png!
 
 GalGen is for Gallery Generator. It's written in Ruby and generates static HTML galleries from images and their descriptions.
 
-More info here: http://bitcheese.net/wiki/code/galgen
+More info here: "http://bitcheese.net/wiki/code/galgen":http://bitcheese.net/wiki/code/galgen
