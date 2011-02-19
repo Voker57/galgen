@@ -120,6 +120,19 @@ class GalGen
 				EOF
 			end
 		end
+ 		if !File.readable?(@rootdir + "/image_feed.erb")
+ 			puts "Creating image_feed.erb"
+ 			File.open(@rootdir + "/image_feed.erb", "w") do |f|
+ 				f.write <<-EOF
+ <a href="<%= image_url %>">
+ <img src="<%= image_thumb_url %>" />
+ </a>
+ <br />
+ <%= image_description %>
+ 				EOF
+ 			end
+ 		end
+		
 	end
 	
 	attr_reader :config
@@ -139,6 +152,7 @@ class GalGen
 		gallery_vars = generate_gallery(out_directory)
 		
 		xo = File.open(([out_directory] + gallery_vars[:gallery_path] + [config[:total_feed]]).join("/"), "w")
+		i_f_tmpl = Tilt::ERBTemplate.new([@rootdir, "image_feed.erb"].join("/"))
 		
 		xml = Builder::XmlMarkup.new(:target => xo)
 		xml.instruct!
@@ -154,7 +168,7 @@ class GalGen
 					full_uri = ([config[:http_root]] + ["images", "full"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
-					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
+					entry.content({"type" => "html"}, i_f_tmpl.render(nil, c_img))
 				end
 			end
 		end
@@ -283,6 +297,8 @@ class GalGen
 		atom_feed = ([out_directory] + gallery_path + ["index.xml"]).join("/")
 		xo = File.open(atom_feed, "w")
 		
+		i_f_tmpl = Tilt::ERBTemplate.new([@rootdir, "image_feed.erb"].join("/"))
+		
 		xml = Builder::XmlMarkup.new(:target => xo)
 		xml.instruct!
 		xml.feed("xmlns"=>"http://www.w3.org/2005/Atom") do |feed|
@@ -298,7 +314,7 @@ class GalGen
 					full_uri = ([config[:http_root]] + ["images", "full"] + gallery_path + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
-					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
+					entry.content({"type" => "html"}, i_f_tmpl.render(nil, c_img))
 				end
 			end
 		end
