@@ -4,20 +4,34 @@ require 'tilt'
 require 'RedCloth'
 require 'builder'
 
-default_config = {
-	:thumb_size => "800x600",
-	:minithumb_size => "200x150",
-	:atom_items => 10,
-	:total_feed => "art_thou.xml"
-}
+
 
 class GalGen
-	def initialize(config, rootdir)
-		@config = config
+	def initialize(rootdir)
 		@rootdir = rootdir
+		default_config = {
+			:thumb_size => "800x600",
+			:minithumb_size => "200x150",
+			:atom_items => 10,
+			:total_feed => "gindex.xml"
+		}
+		@config = if File.readable?(@rootdir + "/" + "galgen.yml")
+			YAML.load_file(@rootdir + "/" + "galgen.yml")
+		else
+			puts "Using default config; create galgen.yml to override"
+			default_config
+		end
+		@sorting_func = lambda do |a,b|
+			if a[:modified] == b[:modified]
+				a[:image_name] <=> b[:image_name]
+			else
+				a[:modified] <=> b[:modified]
+			end
+		end
 	end
 	
 	attr_reader :config
+	attr_reader :sorting_func
 	
 	def check_timestamp(source, target)
 		if source.is_a? Array
@@ -27,6 +41,35 @@ class GalGen
 		else
 			File.mtime(source) <= File.mtime(target)
 		end
+	end
+	
+	def generate(out_directory)
+		gallery_vars = generate_gallery(out_directory)
+		
+		xo = File.open(([out_directory] + gallery_vars[:gallery_path] + [config[:total_feed]]).join("/"), "w")
+		
+		xml = Builder::XmlMarkup.new(:target => xo)
+		xml.instruct!
+		xml.feed("xmlns"=>"http://www.w3.org/2005/Atom") do |feed|
+			feed.title("Updates to all galleries")
+			feed.link("href" => config[:http_root])
+			gallery_vars[:children].sort(&sorting_func).last(config[:atom_items]).each do |c_img|
+				feed.entry do |entry|
+					entry.title(c_img[:image_title])
+					entry.updated(c_img[:modified].strftime("%FT%T%z"))
+					uri = ([config[:http_root]] + c_img[:gallery_path] + [c_img[:image_page_url]]).join("/")
+					img_uri = ([config[:http_root]] + ["images", "thumb"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
+					full_uri = ([config[:http_root]] + ["images", "full"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
+					entry.id(uri)
+					entry.link("href" => uri)
+					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
+				end
+			end
+		end
+		
+		xo.close
+		
+		puts ([out_directory] + gallery_vars[:gallery_path] + [config[:total_feed]]).join("/")
 	end
 	
 	def generate_gallery(out_directory, gallery_path = [])
@@ -42,13 +85,14 @@ class GalGen
 		end
 		
 		gallery_previews = ""
-		child = nil
+		children_children = []
 		if File.exists?(directory + "/" + "galleries")
 			(Dir.entries(directory + "/" + "galleries") - [".",".."]).each do |gallery|
 				child = generate_gallery(out_directory, gallery_path + [gallery])
 				child[:gallery_url] = gallery + "/"
 				cg_tmpl = Tilt::ERBTemplate.new([@rootdir, "gallery_preview.erb"].join("/"))
 				gallery_previews << cg_tmpl.render(nil, child)
+				children_children += child[:children]
 			end
 		end
 		
@@ -61,7 +105,7 @@ class GalGen
 			gallery_description = RedCloth.new(desc_text.gsub(/^.*?(\n\n|$)/,"")).to_html
 		end
 		gallery_vars = { :gallery_title => gallery_title, :gallery_url => './', :gallery_description => gallery_description, :root => (gallery_path.length == 0 ? "." : ([".."] * gallery_path.length).join("/")), :gallery_path => gallery_path }
-		gallery_vars[:children] = child ? child[:children] : []
+		gallery_vars[:children] = children_children
 		g_tmpl = Tilt::ERBTemplate.new([@rootdir, "gallery.erb"].join("/"))
 		previews = ""
 		child_images = []
@@ -81,7 +125,7 @@ class GalGen
 					description = RedCloth.new(desc_text.gsub(/^.*?\n\n/,"")).to_html
 				end
 				tmpl = Tilt::ERBTemplate.new([@rootdir, "image.erb"].join("/"))
-				image_vars = { :image_title => title, :description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/"), :image_name => clean_image_name, :modified => File.mtime(full_image_name)}
+				image_vars = { :image_title => title, :description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/"), :image_name => clean_image_name, :modified => File.mtime(full_image_name), :original_name => image_name}
 				
 				idx = clean_images.index(base_image_name)
 				
@@ -118,7 +162,7 @@ class GalGen
 				
 				File.open(([out_directory] + gallery_path + [base_image_name + ".html"]).join("/"),"w") do |f|
 					f.write(tmpl.render(nil, gallery_vars.merge(image_vars)))
-					puts (gallery_path + [base_image_name + ".html"]).join("/")
+					puts ([out_directory] + gallery_path + [base_image_name + ".html"]).join("/")
 				end
 				
 				p_tmpl = Tilt::ERBTemplate.new([@rootdir, "image_preview.erb"].join("/"))
@@ -142,9 +186,11 @@ class GalGen
 		xml.feed("xmlns"=>"http://www.w3.org/2005/Atom") do |feed|
 			feed.title("Updates to '#{gallery_title}'")
 			feed.link("href" => ([config[:http_root]] + gallery_path).join("/"))
-			child_images.last(config[:atom_items]).each do |c_img|
+			child_images.sort(&sorting_func).last(config[:atom_items]).each do |c_img|
+				p
 				feed.entry do |entry|
 					entry.title(c_img[:image_title])
+					entry.updated(c_img[:modified].strftime("%FT%T%z"))
 					uri = ([config[:http_root]] + gallery_path + [c_img[:image_page_url]]).join("/")
 					img_uri = ([config[:http_root]] + ["images", "thumb"] + gallery_path + [c_img[:image_name]]).join("/")
 					full_uri = ([config[:http_root]] + ["images", "full"] + gallery_path + [c_img[:image_name]]).join("/")
@@ -159,29 +205,7 @@ class GalGen
 		
 		xo.close
 		
-		xo = File.open(([out_directory] + gallery_path + [config[:total_feed]]).join("/"), "w")
 		
-		xml = Builder::XmlMarkup.new(:target => xo)
-		xml.instruct!
-		xml.feed("xmlns"=>"http://www.w3.org/2005/Atom") do |feed|
-			feed.title("Updates to all galleries")
-			feed.link("href" => config[:http_root])
-			gallery_vars[:children].sort_by{|f| f[:modified]}.last(config[:atom_items]).each do |c_img|
-				feed.entry do |entry|
-					entry.title(c_img[:image_title])
-					uri = ([config[:http_root]] + c_img[:gallery_path] + [c_img[:image_page_url]]).join("/")
-					img_uri = ([config[:http_root]] + ["images", "thumb"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
-					full_uri = ([config[:http_root]] + ["images", "full"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
-					entry.id(uri)
-					entry.link("href" => uri)
-					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
-				end
-			end
-		end
-		
-		xo.close
-		
-		puts ([out_directory] + gallery_path + [config[:total_feed]]).join("/")
 		
 		gallery_vars
 	end
@@ -190,6 +214,6 @@ end
 
 
 
-galgen = GalGen.new(default_config, ARGV[0])
+galgen = GalGen.new(ARGV[0])
 
-galgen.generate_gallery(ARGV[1])
+galgen.generate(ARGV[1])
