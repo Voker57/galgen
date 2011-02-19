@@ -151,14 +151,14 @@ class GalGen
 		xml.instruct!
 		xml.feed("xmlns"=>"http://www.w3.org/2005/Atom") do |feed|
 			feed.title("Updates to all galleries")
-			feed.link("href" => config[:http_root])
+			feed.link("href" => config[:http_base])
 			gallery_vars[:children].sort(&sorting_func).last(config[:atom_items]).each do |c_img|
 				feed.entry do |entry|
 					entry.title(c_img[:image_title])
 					entry.updated(c_img[:modified].strftime("%FT%T%z"))
-					uri = ([config[:http_root]] + c_img[:gallery_path] + [c_img[:image_page_url]]).join("/")
-					img_uri = ([config[:http_root]] + ["images", "thumb"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
-					full_uri = ([config[:http_root]] + ["images", "full"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
+					uri = ([config[:http_base]] + c_img[:gallery_path] + [c_img[:image_page_url]]).join("/")
+					img_uri = ([config[:http_base]] + ["images", "thumb"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
+					full_uri = ([config[:http_base]] + ["images", "full"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
 					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
@@ -290,15 +290,15 @@ class GalGen
 		xml.instruct!
 		xml.feed("xmlns"=>"http://www.w3.org/2005/Atom") do |feed|
 			feed.title("Updates to '#{gallery_title}'")
-			feed.link("href" => ([config[:http_root]] + gallery_path).join("/"))
+			feed.link("href" => ([config[:http_base]] + gallery_path).join("/"))
 			child_images.sort(&sorting_func).last(config[:atom_items]).each do |c_img|
 				p
 				feed.entry do |entry|
 					entry.title(c_img[:image_title])
 					entry.updated(c_img[:modified].strftime("%FT%T%z"))
-					uri = ([config[:http_root]] + gallery_path + [c_img[:image_page_url]]).join("/")
-					img_uri = ([config[:http_root]] + ["images", "thumb"] + gallery_path + [c_img[:image_name]]).join("/")
-					full_uri = ([config[:http_root]] + ["images", "full"] + gallery_path + [c_img[:image_name]]).join("/")
+					uri = ([config[:http_base]] + gallery_path + [c_img[:image_page_url]]).join("/")
+					img_uri = ([config[:http_base]] + ["images", "thumb"] + gallery_path + [c_img[:image_name]]).join("/")
+					full_uri = ([config[:http_base]] + ["images", "full"] + gallery_path + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
 					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
