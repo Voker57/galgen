@@ -155,6 +155,7 @@ class GalGen
 	end
 	
 	def generate(out_directory)
+		FileUtils.mkdir_p(out_directory)
 		gallery_vars = generate_gallery(out_directory)
 		
 		xo = File.open(([out_directory] + gallery_vars[:gallery_path] + [config[:total_feed]]).join("/"), "w")
