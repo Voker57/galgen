@@ -161,7 +161,7 @@ class GalGen
 					full_uri = ([config[:http_base]] + ["images", "full"] + c_img[:gallery_path] + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
-					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
+					entry.content({"type" => "html"}, "<a href='#{full_uri}'><img src='#{img_uri}' /></a> #{c_img[:description]}")
 				end
 			end
 		end
@@ -301,7 +301,7 @@ class GalGen
 					full_uri = ([config[:http_base]] + ["images", "full"] + gallery_path + [c_img[:image_name]]).join("/")
 					entry.id(uri)
 					entry.link("href" => uri)
-					entry.content({"type" => "html"}, "<a href='#{img_uri}'><img src='#{full_uri}' /></a> #{c_img[:description]}")
+					entry.content({"type" => "html"}, "<a href='#{full_uri}'><img src='#{img_uri}' /></a> #{c_img[:description]}")
 				end
 			end
 		end
