@@ -204,7 +204,7 @@ class GalGen
 				gallery_title = g_title
 			end
 			if desc_text =~ /\n\n/
-				gallery_description = RedCloth.new(desc_text.gsub(/^.*?(\n\n)/,"")).to_html
+				gallery_description = RedCloth.new(desc_text.sub(/^.*?(\n\n)/,"")).to_html
 			end
 		end
 		gallery_vars = { :gallery_title => gallery_title, :gallery_url => './', :gallery_description => gallery_description, :root => (gallery_path.length == 0 ? "." : ([".."] * gallery_path.length).join("/")), :gallery_path => gallery_path }
@@ -228,7 +228,7 @@ class GalGen
 						title = i_title
 					end
 					if desc_text =~ /\n\n/
-						description = RedCloth.new(desc_text.gsub(/^.*?(\n\n)/,"")).to_html
+						description = RedCloth.new(desc_text.sub(/^.*?(\n\n)/,"")).to_html
 					end
 				end
 				image_vars = { :image_title => title, :image_description => description,  :image_page_url => base_image_name + ".html", :image_url => (([".."] * gallery_path.length) + ["images", "full"] + gallery_path + [clean_image_name]).join("/"), :image_thumb_url => (([".."] * gallery_path.length) + ["images", "thumb"] + gallery_path + [clean_image_name]).join("/"), :image_minithumb_url => (([".."] * gallery_path.length) + ["images", "minithumb"] + gallery_path + [clean_image_name]).join("/"), :image_name => clean_image_name, :modified => File.mtime(full_image_name), :original_name => image_name}
