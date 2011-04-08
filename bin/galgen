@@ -216,11 +216,11 @@ class GalGen
 			clean_images = images.map {|i| i.gsub(/^\d+_/,"").gsub(/\.\w+$/,"")}
 			images.each do |image_name|
 				full_image_name = [directory, "images", image_name].join("/")
-				description_file = [directory, "descriptions", image_name + ".textile"].join("/")
 				clean_image_name = image_name.gsub(/^\d+_/,"")
 				base_image_name = clean_image_name.gsub(/\.\w+$/,"")
 				description = ""
 				title = base_image_name
+				description_file = [directory, "descriptions", clean_image_name + ".textile"].join("/")
 				if File.readable?(description_file)
 					desc_text = File.read(description_file)
 					i_title = desc_text.scan(/^(.*?)(\n\n|$)/)[0][0]
