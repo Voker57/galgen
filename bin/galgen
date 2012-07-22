@@ -112,7 +112,7 @@ class GalGen
 		end
 		if !File.readable?(@rootdir + "/gallery_preview.erb")
 			puts "Creating gallery_preview.erb"
-			File.open(@rootdir + "/gallery_preview", "w") do |f|
+			File.open(@rootdir + "/gallery_preview.erb", "w") do |f|
 				f.write <<-EOF
 
 <h2>
