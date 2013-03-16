@@ -1,6 +1,6 @@
 spec = Gem::Specification.new do |s|
 	s.name = 'galgen'
-	s.version = '0.1.2'
+	s.version = '0.1.4'
 	s.summary = 'Gallery Generator'
 	s.description = 'Static HTML gallery generator'
 	s.add_dependency('builder', '>= 2.0')
