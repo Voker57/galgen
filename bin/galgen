@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# encoding: utf-8
 
 require 'rubygems'
 require 'fileutils'
@@ -122,10 +123,10 @@ class GalGen
 				EOF
 			end
 		end
-		@image_tmpl = Tilt::ERBTemplate.new(@rootdir + "/image.erb")
-		@gallery_tmpl = Tilt::ERBTemplate.new(@rootdir + "/gallery.erb")
-		@image_p_tmpl = Tilt::ERBTemplate.new(@rootdir + "/image_preview.erb")
-		@gallery_p_tmpl = Tilt::ERBTemplate.new(@rootdir + "/gallery_preview.erb")
+		@image_tmpl = Tilt::ERBTemplate.new {File.read(@rootdir + "/image.erb")}
+		@gallery_tmpl = Tilt::ERBTemplate.new {File.read(@rootdir + "/gallery.erb")}
+		@image_p_tmpl = Tilt::ERBTemplate.new {File.read(@rootdir + "/image_preview.erb")}
+		@gallery_p_tmpl = Tilt::ERBTemplate.new {File.read(@rootdir + "/gallery_preview.erb")}
 	end
 	
 	attr_reader :config
@@ -292,7 +293,6 @@ class GalGen
 			feed.title("Updates to '#{gallery_title}'")
 			feed.link("href" => ([config[:http_base]] + gallery_path).join("/"))
 			child_images.sort(&sorting_func).last(config[:atom_items]).each do |c_img|
-				p
 				feed.entry do |entry|
 					entry.title(c_img[:image_title])
 					entry.updated(c_img[:modified].strftime("%FT%T%z"))
